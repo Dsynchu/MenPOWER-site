@@ -31,7 +31,7 @@ export default function ApplyForm({ jobTitle, onClose }) {
       data.append("phone", formData.phone);
       data.append("resume", formData.resume);
 
-      await axios.post("https://menpower-site-4.onrender.com", data);
+      await axios.post("https://menpower-site-6.onrender.com", data);
 
       setSuccess("Application submitted successfully!");
       setFormData({ name: "", email: "", phone: "", resume: null });
