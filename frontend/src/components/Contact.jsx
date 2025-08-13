@@ -22,7 +22,7 @@ export default function Contact() {
     setStatus("Sending...");
 
     try {
-      const res = await fetch("https://menpower-site-4.onrender.com", {
+      const res = await fetch("https://menpower-site-6.onrender.com", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
