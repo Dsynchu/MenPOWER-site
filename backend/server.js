@@ -26,7 +26,6 @@ process.on("unhandledRejection", (reason) => {
 app.post("/send-email", async (req, res) => {
   try {
     const { name, email, message } = req.body;
-
     console.log("📩 Contact form data received:", { name, email, message });
 
     if (!name || !email || !message) {
@@ -41,12 +40,12 @@ app.post("/send-email", async (req, res) => {
       },
     });
 
-    // Verify SMTP connection before sending
     await transporter.verify();
     console.log("✅ SMTP Server is ready to send messages");
 
     await transporter.sendMail({
-      from: email,
+      from: process.env.EMAIL_USER, // Gmail account
+      replyTo: email,               // User's email
       to: process.env.EMAIL_USER,
       subject: `New Contact Form Submission from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
@@ -99,7 +98,6 @@ const fields = [
 app.post("/apply-job", upload.fields(fields), async (req, res) => {
   try {
     const { name, email, phone, jobTitle } = req.body;
-
     console.log("📂 Job application data received:", { name, email, phone, jobTitle });
 
     if (!name || !email || !phone || !jobTitle) {
@@ -127,7 +125,8 @@ app.post("/apply-job", upload.fields(fields), async (req, res) => {
     console.log("✅ SMTP Server is ready to send job application");
 
     await transporter.sendMail({
-      from: `"${name}" <${email}>`,
+      from: process.env.EMAIL_USER, // Gmail account
+      replyTo: email,               // User's email
       to: process.env.EMAIL_USER,
       subject: `Job Application: ${jobTitle} — ${name}`,
       html: `
