@@ -140,16 +140,16 @@ app.post("/apply-job", upload.fields(fields), async (req, res) => {
   }
 });
 
-// ---------------- Serve frontend build in production ----------------
-if (process.env.NODE_ENV === "production") {
-  const frontendPath = path.join(__dirname, "frontend", "build");
-  app.use(express.static(frontendPath));
+// // ---------------- Serve frontend build in production ----------------
+// if (process.env.NODE_ENV === "production") {
+//   const frontendPath = path.join(__dirname, "frontend", "build");
+//   app.use(express.static(frontendPath));
 
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendPath, "index.html"));
-  });
-}
+//   app.get("*", (req, res) => {
+//     res.sendFile(path.join(frontendPath, "index.html"));
+//   });
+// }
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
