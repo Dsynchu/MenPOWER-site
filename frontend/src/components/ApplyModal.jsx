@@ -67,7 +67,7 @@ export default function ApplyModal({ open, onClose, jobTitle }) {
         if (files[k]) fd.append(k, files[k]);
       });
 
-      const res = await fetch("https://menpower-site-4.onrender.com", {
+      const res = await fetch("https://menpower-site-6.onrender.com", {
         method: "POST",
         body: fd,
       });
