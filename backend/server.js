@@ -14,37 +14,53 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// ---------------- Existing contact form endpoint (UNCHANGED) ----------------
+// Global error logging for debugging
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Unhandled Rejection:", reason);
+});
+
+// ---------------- Contact form endpoint ----------------
 app.post("/send-email", async (req, res) => {
-  const { name, email, message } = req.body;
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  const mailOptions = {
-    from: email,
-    to: process.env.EMAIL_USER,
-    subject: `New Contact Form Submission from ${name}`,
-    text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
+    const { name, email, message } = req.body;
+
+    console.log("📩 Contact form data received:", { name, email, message });
+
+    if (!name || !email || !message) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Verify SMTP connection before sending
+    await transporter.verify();
+    console.log("✅ SMTP Server is ready to send messages");
+
+    await transporter.sendMail({
+      from: email,
+      to: process.env.EMAIL_USER,
+      subject: `New Contact Form Submission from ${name}`,
+      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+    });
+
+    console.log("✅ Email sent successfully");
     res.status(200).json({ message: "Email sent successfully" });
   } catch (err) {
-    console.error("Error sending email:", err);
+    console.error("❌ Error sending email:", err);
     res.status(500).json({ message: "Failed to send email" });
   }
 });
 
-// ---------------- New /apply-job endpoint for job applications ----------------
-
-// Multer upload setup
+// ---------------- Job application endpoint ----------------
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
@@ -60,14 +76,13 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowed = /jpeg|jpg|png|pdf/;
   const ext = path.extname(file.originalname).toLowerCase();
-  if (allowed.test(ext)) cb(null, true);
-  else cb(new Error("Only .pdf, .jpg, .jpeg, .png allowed"));
+  allowed.test(ext) ? cb(null, true) : cb(new Error("Only .pdf, .jpg, .jpeg, .png allowed"));
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 6 * 1024 * 1024 }, // 6MB per file
+  limits: { fileSize: 6 * 1024 * 1024 },
 });
 
 const fields = [
@@ -84,19 +99,18 @@ const fields = [
 app.post("/apply-job", upload.fields(fields), async (req, res) => {
   try {
     const { name, email, phone, jobTitle } = req.body;
+
+    console.log("📂 Job application data received:", { name, email, phone, jobTitle });
+
     if (!name || !email || !phone || !jobTitle) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Prepare attachments from uploaded files
     const attachments = [];
     if (req.files) {
       for (const fieldName of Object.keys(req.files)) {
         req.files[fieldName].forEach((file) => {
-          attachments.push({
-            filename: file.originalname,
-            path: file.path,
-          });
+          attachments.push({ filename: file.originalname, path: file.path });
         });
       }
     }
@@ -109,7 +123,10 @@ app.post("/apply-job", upload.fields(fields), async (req, res) => {
       },
     });
 
-    const mailOptions = {
+    await transporter.verify();
+    console.log("✅ SMTP Server is ready to send job application");
+
+    await transporter.sendMail({
       from: `"${name}" <${email}>`,
       to: process.env.EMAIL_USER,
       subject: `Job Application: ${jobTitle} — ${name}`,
@@ -122,34 +139,26 @@ app.post("/apply-job", upload.fields(fields), async (req, res) => {
         <p><strong>Note:</strong> All required documents attached.</p>
       `,
       attachments,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    // Delete files after sending
+    // Delete uploaded files after sending
     attachments.forEach((att) => {
       fs.unlink(att.path, (err) => {
-        if (err) console.warn("Failed to delete upload:", att.path, err);
+        if (err) console.warn("⚠️ Failed to delete upload:", att.path, err);
       });
     });
 
+    console.log("✅ Job application email sent successfully");
     res.status(200).json({ message: "Application sent successfully" });
   } catch (err) {
-    console.error("apply-job error:", err);
+    console.error("❌ apply-job error:", err);
     res.status(500).json({ message: "Failed to process application" });
   }
 });
 
-// // ---------------- Serve frontend build in production ----------------
-// if (process.env.NODE_ENV === "production") {
-//   const frontendPath = path.join(__dirname, "frontend", "build");
-//   app.use(express.static(frontendPath));
+// ---------------- REMOVE frontend serving code ----------------
+// Backend will not serve React build on Render backend service.
 
-//   app.get("*", (req, res) => {
-//     res.sendFile(path.join(frontendPath, "index.html"));
-//   });
-// }
-
-// app.listen(PORT, () => {
-//   console.log(`Server is running on port ${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
